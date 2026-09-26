@@ -1,33 +1,12 @@
 name: Build Windows application
 
-
-
-
-
-
-
-
 on:
   push:
     branches: ["**"]
   workflow_dispatch:
 
-
-
-
-
-
-
-
 permissions:
   contents: read
-
-
-
-
-
-
-
 
 jobs:
   build-windows:
@@ -50,9 +29,10 @@ jobs:
           Copy-Item $ffmpeg.FullName tools/ffmpeg.exe -Force
           curl.exe -L --fail -o exiftool.zip "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download"
           Expand-Archive -Path exiftool.zip -DestinationPath exiftool-extracted -Force
-          $exiftool = Get-ChildItem exiftool-extracted -Filter "exiftool*.exe" -Recurse | Select-Object -First 1
-          if (-not $exiftool) { throw "ExifTool executable was not found after installation" }
+          $exiftool = Get-ChildItem exiftool-extracted -Filter "exiftool(-k).exe" -Recurse | Select-Object -First 1
+          if (-not $exiftool) { throw "ExifTool executable was not found after download" }
           Copy-Item $exiftool.FullName tools/exiftool.exe -Force
+          Copy-Item (Join-Path $exiftool.Directory.FullName "exiftool_files") tools/exiftool_files -Recurse -Force
           & tools/ffmpeg.exe -version
           & tools/exiftool.exe -ver
       - name: Install PyInstaller
@@ -64,12 +44,14 @@ jobs:
           if not exist "dist\MediaMetadataMerge\tools" mkdir "dist\MediaMetadataMerge\tools"
           copy /Y "tools\ffmpeg.exe" "dist\MediaMetadataMerge\tools\ffmpeg.exe"
           copy /Y "tools\exiftool.exe" "dist\MediaMetadataMerge\tools\exiftool.exe"
+          xcopy /E /I /Y "tools\exiftool_files" "dist\MediaMetadataMerge\tools\exiftool_files"
       - name: Check the finished application
         shell: pwsh
         run: |
           if (-not (Test-Path "dist/MediaMetadataMerge/MediaMetadataMerge.exe")) { throw "The EXE was not created" }
           if (-not (Test-Path "dist/MediaMetadataMerge/tools/ffmpeg.exe")) { throw "FFmpeg is missing from the application" }
           if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) { throw "ExifTool is missing from the application" }
+          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool_files")) { throw "ExifTool support files are missing from the application" }
       - name: Create download ZIP
         shell: pwsh
         run: Compress-Archive -Path dist/MediaMetadataMerge -DestinationPath MediaMetadataMerge-windows-x64.zip
@@ -78,3 +60,5 @@ jobs:
         with:
           name: MediaMetadataMerge-windows-x64
           path: MediaMetadataMerge-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 90
