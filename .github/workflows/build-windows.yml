@@ -3,6 +3,10 @@ name: Build Windows application
 
 
 
+
+
+
+
 on:
   push:
     branches: ["**"]
@@ -11,8 +15,16 @@ on:
 
 
 
+
+
+
+
 permissions:
   contents: read
+
+
+
+
 
 
 
@@ -36,7 +48,7 @@ jobs:
           $ffmpeg = Get-ChildItem ffmpeg-extracted -Filter ffmpeg.exe -Recurse | Select-Object -First 1
           if (-not $ffmpeg) { throw "FFmpeg download did not contain ffmpeg.exe" }
           Copy-Item $ffmpeg.FullName tools/ffmpeg.exe -Force
-          Invoke-WebRequest -Uri "https://exiftool.org/exiftool-13.59_64.zip" -OutFile exiftool.zip
+          curl.exe -L --fail -o exiftool.zip "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download"
           Expand-Archive -Path exiftool.zip -DestinationPath exiftool-extracted -Force
           $exiftool = Get-ChildItem exiftool-extracted -Filter "exiftool*.exe" -Recurse | Select-Object -First 1
           if (-not $exiftool) { throw "ExifTool executable was not found after installation" }
@@ -66,8 +78,3 @@ jobs:
         with:
           name: MediaMetadataMerge-windows-x64
           path: MediaMetadataMerge-windows-x64.zip
-          if-no-files-found: error
-          retention-days: 90
-
-
-
