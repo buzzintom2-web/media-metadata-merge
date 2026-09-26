@@ -1,105 +1,12 @@
 name: Build Windows application
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 on:
   push:
     branches: ["**"]
   workflow_dispatch:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 permissions:
   contents: read
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 jobs:
   build-windows:
@@ -138,3 +45,16 @@ jobs:
       - name: Check the finished application
         shell: pwsh
         run: |
+          if (-not (Test-Path "dist/MediaMetadataMerge/MediaMetadataMerge.exe")) { throw "The EXE was not created" }
+          if (-not (Test-Path "dist/MediaMetadataMerge/tools/ffmpeg.exe")) { throw "FFmpeg is missing from the application" }
+          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) { throw "ExifTool is missing from the application" }
+      - name: Create download ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/MediaMetadataMerge -DestinationPath MediaMetadataMerge-windows-x64.zip
+      - name: Upload Windows application
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaMetadataMerge-windows-x64
+          path: MediaMetadataMerge-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 90
