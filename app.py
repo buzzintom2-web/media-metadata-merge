@@ -158,22 +158,30 @@ class App:
         self.merge_btn.configure(state='normal')
 
     def find_tools(self):
-        bases = [
-            Path(__file__).resolve().parent / 'tools',
-            Path(sys.executable).resolve().parent / 'tools',
-            Path(getattr(sys, '_MEIPASS', '')) / 'tools',
-            Path.cwd() / 'tools',
+        # Search both normal onedir builds and PyInstaller bundle folders.
+        roots = [
+            Path(__file__).resolve().parent,
+            Path(sys.executable).resolve().parent,
+            Path(getattr(sys, '_MEIPASS', '')),
+            Path.cwd(),
         ]
         names = {}
-        for name in ('ffmpeg.exe', 'exiftool.exe'):
-            bundled = next((base / name for base in bases if (base / name).exists()), None)
-            names[name] = str(bundled if bundled else name)
+        for wanted in ('ffmpeg.exe', 'exiftool.exe'):
+            candidates = []
+            for root in roots:
+                if not root.exists():
+                    continue
+                candidates.extend(p for p in root.rglob('*') if p.is_file() and p.name.lower() in {wanted, 'exiftool(-k).exe'} and (wanted == 'exiftool.exe' or p.name.lower() == wanted))
+            bundled = next((p for p in candidates if p.name.lower() == wanted), None)
+            if bundled is None and wanted == 'exiftool.exe':
+                bundled = next((p for p in candidates if p.name.lower() == 'exiftool(-k).exe'), None)
+            names[wanted] = str(bundled) if bundled else wanted
         for name, cmd in names.items():
             try:
                 run([cmd, '-version'])
             except Exception:
-                locations = '\n'.join('  ' + str(base / name) for base in bases)
-                raise RuntimeError(f'{name} was not found. Download the latest GitHub Actions artifact, or put it in one of these locations:\n{locations}\nYou can also add it to Windows PATH.')
+                searched = '\n'.join('  ' + str(root) for root in roots)
+                raise RuntimeError(f'{name} was not found in the packaged application. Searched:\n{searched}\nPlease download the newest GitHub Actions artifact.')
         return names
 
     def merge_one(self, src, meta_path, output_dir, tools):
