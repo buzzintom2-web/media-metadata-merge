@@ -21,16 +21,17 @@ jobs:
       - name: Install media tools
         shell: pwsh
         run: |
-          choco install ffmpeg -y --no-progress
-          choco install exiftool -y --no-progress
-          $env:Path = "$env:ChocolateyInstall\bin;$env:Path"
           New-Item -ItemType Directory -Force tools | Out-Null
-          $ffmpeg = (Get-Command ffmpeg.exe -ErrorAction Stop).Source
-          $exiftool = (Get-Command exiftool.exe -ErrorAction Stop).Source
-          Copy-Item -LiteralPath $ffmpeg -Destination tools/ffmpeg.exe -Force
-          Copy-Item -LiteralPath $exiftool -Destination tools/exiftool.exe -Force
-          if (-not (Test-Path tools/ffmpeg.exe)) { throw "FFmpeg was not copied into tools" }
-          if (-not (Test-Path tools/exiftool.exe)) { throw "ExifTool was not copied into tools" }
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-extracted -Force
+          $ffmpeg = Get-ChildItem ffmpeg-extracted -Filter ffmpeg.exe -Recurse | Select-Object -First 1
+          if (-not $ffmpeg) { throw "FFmpeg download did not contain ffmpeg.exe" }
+          Copy-Item $ffmpeg.FullName tools/ffmpeg.exe -Force
+          Invoke-WebRequest -Uri "https://exiftool.org/exiftool-13.59_64.zip" -OutFile exiftool.zip
+          Expand-Archive -Path exiftool.zip -DestinationPath exiftool-extracted -Force
+          $exiftool = Get-ChildItem exiftool-extracted -Filter "exiftool(-k).exe" -Recurse | Select-Object -First 1
+          if (-not $exiftool) { throw "ExifTool download did not contain exiftool(-k).exe" }
+          Copy-Item $exiftool.FullName tools/exiftool.exe -Force
           & tools/ffmpeg.exe -version
           & tools/exiftool.exe -ver
       - name: Install PyInstaller
