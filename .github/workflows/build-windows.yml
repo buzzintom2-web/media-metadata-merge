@@ -1,14 +1,20 @@
 name: Build Windows application
 
 
+
+
 on:
   push:
     branches: ["**"]
   workflow_dispatch:
 
 
+
+
 permissions:
   contents: read
+
+
 
 
 jobs:
@@ -30,8 +36,9 @@ jobs:
           $ffmpeg = Get-ChildItem ffmpeg-extracted -Filter ffmpeg.exe -Recurse | Select-Object -First 1
           if (-not $ffmpeg) { throw "FFmpeg download did not contain ffmpeg.exe" }
           Copy-Item $ffmpeg.FullName tools/ffmpeg.exe -Force
-          winget install --id OliverBetz.ExifTool -e --accept-source-agreements --accept-package-agreements --silent
-          $roots = @("C:\Program Files","$env:LOCALAPPDATA\Microsoft\WinGet\Packages","$env:LOCALAPPDATA\Microsoft\WinGet\Links"); $exiftool = Get-ChildItem $roots -Filter "exiftool*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          Invoke-WebRequest -Uri "https://exiftool.org/exiftool-13.59_64.zip" -OutFile exiftool.zip
+          Expand-Archive -Path exiftool.zip -DestinationPath exiftool-extracted -Force
+          $exiftool = Get-ChildItem exiftool-extracted -Filter "exiftool*.exe" -Recurse | Select-Object -First 1
           if (-not $exiftool) { throw "ExifTool executable was not found after installation" }
           Copy-Item $exiftool.FullName tools/exiftool.exe -Force
           & tools/ffmpeg.exe -version
@@ -61,4 +68,6 @@ jobs:
           path: MediaMetadataMerge-windows-x64.zip
           if-no-files-found: error
           retention-days: 90
+
+
 
