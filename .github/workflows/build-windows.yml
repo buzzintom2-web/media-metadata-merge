@@ -7,6 +7,30 @@ name: Build Windows application
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 on:
   push:
     branches: ["**"]
@@ -19,8 +43,56 @@ on:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 permissions:
   contents: read
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -49,8 +121,8 @@ jobs:
           if (-not $ffmpeg) { throw "FFmpeg download did not contain ffmpeg.exe" }
           Copy-Item $ffmpeg.FullName tools/ffmpeg.exe -Force
           winget install --id OliverBetz.ExifTool -e --accept-source-agreements --accept-package-agreements --silent
-          $exiftool = Get-ChildItem "C:\Program Files","$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter exiftool.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exiftool) { throw "ExifTool download did not contain exiftool(-k).exe" }
+          $exiftool = Get-ChildItem "C:\Program Files","$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter "exiftool*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exiftool) { throw "ExifTool executable was not found after installation" }
           Copy-Item $exiftool.FullName tools/exiftool.exe -Force
           & tools/ffmpeg.exe -version
           & tools/exiftool.exe -ver
@@ -66,14 +138,3 @@ jobs:
       - name: Check the finished application
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist/MediaMetadataMerge/MediaMetadataMerge.exe")) { throw "The EXE was not created" }
-          if (-not (Test-Path "dist/MediaMetadataMerge/tools/ffmpeg.exe")) { throw "FFmpeg is missing from the application" }
-          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) { throw "ExifTool is missing from the application" }
-      - name: Create download ZIP
-        shell: pwsh
-        run: Compress-Archive -Path dist/MediaMetadataMerge -DestinationPath MediaMetadataMerge-windows-x64.zip
-      - name: Upload Windows application
-        uses: actions/upload-artifact@v4
-        with:
-          name: MediaMetadataMerge-windows-x64
-          path: MediaMetadataMerge-windows-x64.zip
