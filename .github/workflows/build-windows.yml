@@ -11,72 +11,46 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
-
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install FFmpeg and ExifTool
+      - name: Install media tools
         shell: pwsh
         run: |
-          choco install ffmpeg exiftool -y --no-progress
+          choco install ffmpeg -y --no-progress
+          choco install exiftool -y --no-progress
+          $env:Path = "$env:ChocolateyInstall\bin;$env:Path"
           New-Item -ItemType Directory -Force tools | Out-Null
-
-          $ffmpeg = where.exe ffmpeg.exe | Select-Object -First 1
-          $exiftool = where.exe exiftool.exe | Select-Object -First 1
-
-          if (-not $ffmpeg) {
-            throw "FFmpeg was not found after installation"
-          }
-
-          if (-not $exiftool) {
-            throw "ExifTool was not found after installation"
-          }
-
+          $ffmpeg = (Get-Command ffmpeg.exe -ErrorAction Stop).Source
+          $exiftool = (Get-Command exiftool.exe -ErrorAction Stop).Source
           Copy-Item -LiteralPath $ffmpeg -Destination tools/ffmpeg.exe -Force
           Copy-Item -LiteralPath $exiftool -Destination tools/exiftool.exe -Force
-
+          if (-not (Test-Path tools/ffmpeg.exe)) { throw "FFmpeg was not copied into tools" }
+          if (-not (Test-Path tools/exiftool.exe)) { throw "ExifTool was not copied into tools" }
           & tools/ffmpeg.exe -version
           & tools/exiftool.exe -ver
-
       - name: Install PyInstaller
         run: python -m pip install --upgrade pyinstaller
-
       - name: Build Windows application
         shell: cmd
         run: |
           pyinstaller --noconfirm --clean --windowed --name MediaMetadataMerge --add-binary "tools\ffmpeg.exe;tools" --add-binary "tools\exiftool.exe;tools" app.py
-
           if not exist "dist\MediaMetadataMerge\tools" mkdir "dist\MediaMetadataMerge\tools"
-
           copy /Y "tools\ffmpeg.exe" "dist\MediaMetadataMerge\tools\ffmpeg.exe"
           copy /Y "tools\exiftool.exe" "dist\MediaMetadataMerge\tools\exiftool.exe"
-
       - name: Check the finished application
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist/MediaMetadataMerge/MediaMetadataMerge.exe")) {
-            throw "The EXE was not created"
-          }
-
-          if (-not (Test-Path "dist/MediaMetadataMerge/tools/ffmpeg.exe")) {
-            throw "FFmpeg is missing from the application"
-          }
-
-          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) {
-            throw "ExifTool is missing from the application"
-          }
-
+          if (-not (Test-Path "dist/MediaMetadataMerge/MediaMetadataMerge.exe")) { throw "The EXE was not created" }
+          if (-not (Test-Path "dist/MediaMetadataMerge/tools/ffmpeg.exe")) { throw "FFmpeg is missing from the application" }
+          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) { throw "ExifTool is missing from the application" }
       - name: Create download ZIP
         shell: pwsh
-        run: |
-          Compress-Archive -Path dist/MediaMetadataMerge -DestinationPath MediaMetadataMerge-windows-x64.zip
-
+        run: Compress-Archive -Path dist/MediaMetadataMerge -DestinationPath MediaMetadataMerge-windows-x64.zip
       - name: Upload Windows application
         uses: actions/upload-artifact@v4
         with:
