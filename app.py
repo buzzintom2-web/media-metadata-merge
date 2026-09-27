@@ -178,7 +178,7 @@ class App:
             names[wanted] = str(bundled) if bundled else wanted
         for name, cmd in names.items():
             try:
-                run([cmd, '-version'])
+                run([cmd, '-ver' if name == 'exiftool.exe' else '-version'])
             except Exception:
                 searched = '\n'.join('  ' + str(root) for root in roots)
                 raise RuntimeError(f'{name} was not found in the packaged application. Searched:\n{searched}\nPlease download the newest GitHub Actions artifact.')
