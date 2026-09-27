@@ -35,6 +35,8 @@ jobs:
           Copy-Item (Join-Path $exiftool.Directory.FullName "exiftool_files") tools/exiftool_files -Recurse -Force
           $perlDll = Get-ChildItem tools/exiftool_files -Filter "perl5*.dll" -Recurse | Select-Object -First 1
           if (-not $perlDll) { throw "ExifTool perl5 DLL was not found" }
+          $strictPm = Get-ChildItem tools/exiftool_files -Filter "strict.pm" -Recurse | Select-Object -First 1
+          if (-not $strictPm) { throw "ExifTool strict.pm library was not found" }
           & tools/ffmpeg.exe -version
           & tools/exiftool.exe -ver
       - name: Install PyInstaller
@@ -55,6 +57,7 @@ jobs:
           if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) { throw "ExifTool is missing from the application" }
           if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool_files")) { throw "ExifTool support files are missing from the application" }
           if (-not (Get-ChildItem "dist/MediaMetadataMerge/tools/exiftool_files" -Filter "perl5*.dll" -Recurse)) { throw "ExifTool perl5 DLL is missing from the application" }
+          if (-not (Get-ChildItem "dist/MediaMetadataMerge/tools/exiftool_files" -Filter "strict.pm" -Recurse)) { throw "ExifTool strict.pm library is missing from the application" }
       - name: Create download ZIP
         shell: pwsh
         run: Compress-Archive -Path dist/MediaMetadataMerge -DestinationPath MediaMetadataMerge-windows-x64.zip
