@@ -35,10 +35,14 @@ def ffmpeg_date(value):
 
 
 def run(cmd):
-    # ExifTool needs its adjacent exiftool_files folder as the working directory.
-    exe_dir = str(Path(cmd[0]).resolve().parent) if str(cmd[0]).lower().endswith('.exe') else None
-    return subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=exe_dir)
-
+    # ExifTool needs its adjacent exiftool_files folder and Perl lib directory.
+    exe_path = Path(cmd[0]).resolve()
+    exe_dir = str(exe_path.parent) if exe_path.suffix.lower() == '.exe' else None
+    env = os.environ.copy()
+    if 'exiftool' in exe_path.name.lower():
+        perl_lib = exe_path.parent / 'exiftool_files' / 'lib'
+        env['PERL5LIB'] = str(perl_lib)
+    return subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=exe_dir, env=env)
 
 class App:
     def __init__(self, root):
