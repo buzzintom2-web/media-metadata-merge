@@ -35,7 +35,9 @@ def ffmpeg_date(value):
 
 
 def run(cmd):
-    return subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # ExifTool needs its adjacent exiftool_files folder as the working directory.
+    exe_dir = str(Path(cmd[0]).resolve().parent) if str(cmd[0]).lower().endswith('.exe') else None
+    return subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=exe_dir)
 
 
 class App:
@@ -179,9 +181,13 @@ class App:
         for name, cmd in names.items():
             try:
                 run([cmd, '-ver' if name == 'exiftool.exe' else '-version'])
-            except Exception:
+            except subprocess.CalledProcessError as exc:
+                detail = (exc.stdout or '').strip()
                 searched = '\n'.join('  ' + str(root) for root in roots)
-                raise RuntimeError(f'{name} was not found in the packaged application. Searched:\n{searched}\nPlease download the newest GitHub Actions artifact.')
+                raise RuntimeError(f'{name} could not run. {detail}\nSearched:\n{searched}')
+            except Exception as exc:
+                searched = '\n'.join('  ' + str(root) for root in roots)
+                raise RuntimeError(f'{name} could not be started: {exc}\nSearched:\n{searched}')
         return names
 
     def merge_one(self, src, meta_path, output_dir, tools):
