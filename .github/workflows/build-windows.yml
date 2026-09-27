@@ -31,30 +31,30 @@ jobs:
           Expand-Archive -Path exiftool.zip -DestinationPath exiftool-extracted -Force
           $exiftool = Get-ChildItem exiftool-extracted -Filter "exiftool(-k).exe" -Recurse | Select-Object -First 1
           if (-not $exiftool) { throw "ExifTool executable was not found after download" }
-          Copy-Item $exiftool.FullName tools/exiftool.exe -Force
+          Copy-Item $exiftool.FullName "tools/exiftool(-k).exe" -Force
           Copy-Item (Join-Path $exiftool.Directory.FullName "exiftool_files") tools/exiftool_files -Recurse -Force
           $perlDll = Get-ChildItem tools/exiftool_files -Filter "perl5*.dll" -Recurse | Select-Object -First 1
           if (-not $perlDll) { throw "ExifTool perl5 DLL was not found" }
           $strictPm = Get-ChildItem tools/exiftool_files -Filter "strict.pm" -Recurse | Select-Object -First 1
           if (-not $strictPm) { throw "ExifTool strict.pm library was not found" }
           & tools/ffmpeg.exe -version
-          & tools/exiftool.exe -ver
+          & "tools/exiftool(-k).exe" -ver
       - name: Install PyInstaller
         run: python -m pip install --upgrade pyinstaller
       - name: Build Windows application
         shell: cmd
         run: |
-          pyinstaller --noconfirm --clean --windowed --name MediaMetadataMerge --add-binary "tools\ffmpeg.exe;tools" --add-binary "tools\exiftool.exe;tools" app.py
+          pyinstaller --noconfirm --clean --windowed --name MediaMetadataMerge --add-binary "tools\ffmpeg.exe;tools" --add-binary "tools\exiftool(-k).exe;tools" app.py
           if not exist "dist\MediaMetadataMerge\tools" mkdir "dist\MediaMetadataMerge\tools"
           copy /Y "tools\ffmpeg.exe" "dist\MediaMetadataMerge\tools\ffmpeg.exe"
-          copy /Y "tools\exiftool.exe" "dist\MediaMetadataMerge\tools\exiftool.exe"
+          copy /Y "tools\exiftool(-k).exe" "dist\MediaMetadataMerge\tools\exiftool(-k).exe"
           powershell -NoProfile -Command "Copy-Item -Path 'tools\exiftool_files\*' -Destination 'dist\MediaMetadataMerge\tools\exiftool_files' -Recurse -Force"
       - name: Check the finished application
         shell: pwsh
         run: |
           if (-not (Test-Path "dist/MediaMetadataMerge/MediaMetadataMerge.exe")) { throw "The EXE was not created" }
           if (-not (Test-Path "dist/MediaMetadataMerge/tools/ffmpeg.exe")) { throw "FFmpeg is missing from the application" }
-          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool.exe")) { throw "ExifTool is missing from the application" }
+          if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool(-k).exe")) { throw "ExifTool is missing from the application" }
           if (-not (Test-Path "dist/MediaMetadataMerge/tools/exiftool_files")) { throw "ExifTool support files are missing from the application" }
           if (-not (Get-ChildItem "dist/MediaMetadataMerge/tools/exiftool_files" -Filter "perl5*.dll" -Recurse)) { throw "ExifTool perl5 DLL is missing from the application" }
           if (-not (Get-ChildItem "dist/MediaMetadataMerge/tools/exiftool_files" -Filter "strict.pm" -Recurse)) { throw "ExifTool strict.pm library is missing from the application" }
