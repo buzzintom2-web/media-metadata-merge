@@ -161,22 +161,27 @@ class App:
 
     def find_tools(self):
         # Search both normal onedir builds and PyInstaller bundle folders.
+        app_root = Path(sys.executable).resolve().parent
+        source_root = Path(__file__).resolve().parent
         roots = [
-            Path(__file__).resolve().parent,
-            Path(sys.executable).resolve().parent,
+            app_root,
+            source_root,
             Path(getattr(sys, '_MEIPASS', '')),
             Path.cwd(),
         ]
         names = {}
         for wanted in ('ffmpeg.exe', 'exiftool.exe'):
-            candidates = []
-            for root in roots:
-                if not root.exists():
-                    continue
-                candidates.extend(p for p in root.rglob('*') if p.is_file() and p.name.lower() in {wanted, 'exiftool(-k).exe'} and (wanted == 'exiftool.exe' or p.name.lower() == wanted))
-            bundled = next((p for p in candidates if p.name.lower() == wanted), None)
-            if bundled is None and wanted == 'exiftool.exe':
-                bundled = next((p for p in candidates if p.name.lower() == 'exiftool(-k).exe'), None)
+            # Prefer the complete tools folder beside the EXE over PyInstaller's internal copy.
+            direct = [root / 'tools' / wanted for root in (app_root, source_root) if (root / 'tools' / wanted).exists()]
+            bundled = direct[0] if direct else None
+            if bundled is None:
+                candidates = []
+                for root in roots:
+                    if root.exists():
+                        candidates.extend(p for p in root.rglob('*') if p.is_file() and p.name.lower() in {wanted, 'exiftool(-k).exe'} and (wanted == 'exiftool.exe' or p.name.lower() == wanted))
+                bundled = next((p for p in candidates if p.name.lower() == wanted), None)
+                if bundled is None and wanted == 'exiftool.exe':
+                    bundled = next((p for p in candidates if p.name.lower() == 'exiftool(-k).exe'), None)
             names[wanted] = str(bundled) if bundled else wanted
         for name, cmd in names.items():
             try:
